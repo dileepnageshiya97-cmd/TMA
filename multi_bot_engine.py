@@ -4,8 +4,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppI
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 DB_NAME = "salon_saas.db"
-BASE_URL = "http://127.0.0.1:5000"  # Production par aapka ngrok ya live domain name hoga
-
+BASE_URL = "https://tma-backend-nkhy.onrender.com"
 def get_active_salons():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
