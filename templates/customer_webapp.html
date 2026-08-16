@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salon Booking Form</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-200">
+        
+        <!-- Header -->
+        <div class="text-center mb-6">
+            <h2 class="text-2xl font-extrabold text-gray-800">Book Your Appointment</h2>
+            <p class="text-xs text-gray-500 mt-1">Select your service and choose a preferred time</p>
+        </div>
+
+        <!-- Booking Form -->
+        <form id="booking-form" onsubmit="handleBooking(event)">
+            
+            <!-- Customer Name -->
+            <div class="mb-4">
+                <label for="cust-name" class="block text-xs font-semibold text-gray-600 uppercase mb-1">Full Name</label>
+                <input type="text" id="cust-name" placeholder="Enter your full name" required
+                    class="w-full border border-gray-300 rounded-xl p-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+            </div>
+
+            <!-- Phone Number -->
+            <div class="mb-4">
+                <label for="cust-phone" class="block text-xs font-semibold text-gray-600 uppercase mb-1">Phone Number</label>
+                <input type="tel" id="cust-phone" placeholder="Enter mobile number" required
+                    class="w-full border border-gray-300 rounded-xl p-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+            </div>
+
+            <!-- Select Service Dropdown (Fixed Code) -->
+            <div class="mb-5">
+                <label for="cust-service" class="block text-xs font-semibold text-gray-600 uppercase mb-1">Select Service</label>
+                <select id="cust-service" required
+                    class="w-full border border-gray-300 rounded-xl p-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                    <option value="" disabled selected>Choose a Service...</option>
+                    <option value="haircut">Haircut & Styling - ₹300</option>
+                    <option value="facial">Facial & Skincare - ₹800</option>
+                    <option value="coloring">Hair Coloring - ₹1200</option>
+                    <option value="beard">Beard Grooming - ₹150</option>
+                </select>
+            </div>
+
+            <!-- Date Selection -->
+            <div class="mb-4">
+                <label for="booking-date" class="block text-xs font-semibold text-gray-600 uppercase mb-1">Appointment Date</label>
+                <input type="date" id="booking-date" required
+                    class="w-full border border-gray-300 rounded-xl p-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" 
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-lg hover:shadow-indigo-500/30 active:scale-95">
+                Confirm Booking
+            </button>
+
+        </form>
+
+    </div>
+
+    <script>
+        function handleBooking(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('cust-name').value;
+            const phone = document.getElementById('cust-phone').value;
+            const service = document.getElementById('cust-service').value;
+            const date = document.getElementById('booking-date').value;
+
+            alert(`Booking Successful!\n\nName: ${name}\nService: ${service}\nDate: ${date}`);
+            
+            // Clear Form
+            document.getElementById('booking-form').reset();
+        }
+    </script>
+
+</body>
+</html>

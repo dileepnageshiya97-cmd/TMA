@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salon Manager Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 font-sans p-4">
+
+    <!-- Header & Stats -->
+    <div class="mb-6">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-black text-slate-800">Live Queue Control</h1>
+            <button onclick="loadBookings()" class="bg-white border px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm">🔄 Refresh</button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <p class="text-xs text-slate-400 font-semibold uppercase">Today's Revenue</p>
+                <h3 id="stat-earnings" class="text-2xl font-black text-emerald-600 mt-1">₹0</h3>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <p class="text-xs text-slate-400 font-semibold uppercase">Total Customers</p>
+                <h3 id="stat-customers" class="text-2xl font-black text-blue-600 mt-1">0</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Queue Stream -->
+    <div class="space-y-3" id="queue-container">
+        <!-- Loaded Dynamically -->
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const salonId = urlParams.get('salon_id') || '1';
+
+        function loadBookings() {
+            fetch(`/api/owner/bookings?salon_id=${salonId}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('stat-earnings').innerText = `₹${data.total_earnings}`;
+                    document.getElementById('stat-customers').innerText = data.today_customers;
+
+                    const container = document.getElementById('queue-container');
+                    container.innerHTML = '';
+
+                    data.bookings.forEach(b => {
+                        let statusBadge = b.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 
+                                         (b.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700');
+
+                        container.innerHTML += `
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+                                <div>
+                                    <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${statusBadge}">${b.status}</span>
+                                    <h3 class="text-xl font-black text-slate-800 mt-1">Token #${b.token_number}</h3>
+                                    <p class="text-xs text-slate-500 font-medium">${b.customer_name} • ${b.service_name}</p>
+                                    <p class="text-xs font-bold text-slate-700 mt-0.5">₹${b.amount}</p>
+                                </div>
+                                <div class="flex flex-col gap-1.5">
+                                    ${b.status === 'WAITING' ? `<button onclick="updateStatus(${b.booking_id}, 'IN_PROGRESS')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-xl font-bold transition">Call Next</button>` : ''}
+                                    ${b.status === 'IN_PROGRESS' ? `<button onclick="updateStatus(${b.booking_id}, 'COMPLETED')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-2 rounded-xl font-bold transition">Complete</button>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                });
+        }
+
+        function updateStatus(bookingId, newStatus) {
+            fetch('/api/owner/update-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ booking_id: bookingId, status: newStatus })
+            }).then(() => loadBookings());
+        }
+
+        loadBookings();
+    </script>
+</body>
+</html>
