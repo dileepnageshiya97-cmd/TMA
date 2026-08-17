@@ -1,1 +1,1 @@
-web: python database.py && gunicorn backend_api:app
+web: python master_admin_bot.py & python multi_bot_engine.py & gunicorn backend_api:app
