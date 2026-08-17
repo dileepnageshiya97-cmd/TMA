@@ -5,6 +5,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 DB_NAME = "salon_saas.db"
 BASE_URL = "https://tma-backend-nkhy.onrender.com"
+
 def get_active_salons():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
@@ -33,7 +34,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
-def main():
+async def main():
     salons = get_active_salons()
     if not salons:
         print("⚠️ No active salons found in Database. Pehle Master Admin se salon add karein!")
@@ -41,18 +42,24 @@ def main():
 
     print(f"🚀 Launching Multi-Bot Engine for {len(salons)} Salons...")
 
+    apps = []
     for salon_id, salon_name, bot_token in salons:
         try:
             app = ApplicationBuilder().token(bot_token).build()
             app.bot_data["salon_id"] = salon_id
             app.bot_data["salon_name"] = salon_name
-
             app.add_handler(CommandHandler("start", start))
             
+            await app.initialize()
+            await app.start()
+            await app.updater.start_polling()
+            apps.append(app)
             print(f"✅ Bot Started: [{salon_name}] (ID: {salon_id})")
-            app.run_polling(close_loop=False)
         except Exception as e:
             print(f"❌ Error starting bot for {salon_name}: {e}")
 
+    if apps:
+        await asyncio.Event().wait()
+
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

@@ -1,2 +1,1 @@
-web: gunicorn backend_api:app
-worker: python multi_bot_engine.py
+web: python database.py && gunicorn backend_api:app

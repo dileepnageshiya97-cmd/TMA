@@ -2,8 +2,8 @@ import sqlite3
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-ADMIN_BOT_TOKEN = "YOUR_MASTER_ADMIN_BOT_TOKEN_HERE"
-SUPER_ADMIN_ID = 123456789  # Aapki Personal Telegram ID
+ADMIN_BOT_TOKEN = "YOUR_MASTER_ADMIN_BOT_TOKEN_HERE"  # Apni token yahan daalein
+SUPER_ADMIN_ID = 123456789  # Apni Telegram ID yahan daalein
 
 DB_NAME = "salon_saas.db"
 
@@ -13,7 +13,6 @@ async def add_salon(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        # Command syntax: /addsalon SalonName BotToken LogoURL ColorHex
         args = context.args
         if len(args) < 2:
             await update.message.reply_text("⚠️ Usage: `/addsalon SalonName BotToken [LogoURL] [ColorHex]`", parse_mode="Markdown")
@@ -44,6 +43,8 @@ async def add_salon(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"• *Theme Color:* `{color}`",
             parse_mode="Markdown"
         )
+    except sqlite3.IntegrityError:
+        await update.message.reply_text("❌ Error: Ye Bot Token pehle se exist karta hai.")
     except Exception as e:
         await update.message.reply_text(f"❌ Error adding salon: {e}")
 

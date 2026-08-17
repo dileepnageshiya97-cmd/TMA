@@ -30,17 +30,16 @@ def init_db():
         )
     ''')
 
-    # 3. Bookings & Token Records Table
+    # 3. Appointments / Bookings Table
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS bookings (
-            booking_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        CREATE TABLE IF NOT EXISTS appointments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             salon_id INTEGER NOT NULL,
             customer_name TEXT NOT NULL,
             customer_phone TEXT,
-            token_number INTEGER NOT NULL,
             service_name TEXT DEFAULT 'General Haircut',
-            amount REAL DEFAULT 0.0,
-            payment_status TEXT DEFAULT 'PAID',
+            booking_date TEXT,
+            booking_time TEXT,
             status TEXT DEFAULT 'WAITING',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (salon_id) REFERENCES salons (salon_id)
