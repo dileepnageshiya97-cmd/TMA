@@ -1,9 +1,11 @@
+import os
 import sqlite3
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-ADMIN_BOT_TOKEN = "YOUR_MASTER_ADMIN_BOT_TOKEN_HERE"  # Apni token yahan daalein
-SUPER_ADMIN_ID = 123456789  # Apni Telegram ID yahan daalein
+# Environment variables se secure fetch
+ADMIN_BOT_TOKEN = os.environ.get("ADMIN_BOT_TOKEN")
+SUPER_ADMIN_ID = int(os.environ.get("SUPER_ADMIN_ID", "0"))
 
 DB_NAME = "salon_saas.db"
 
@@ -49,7 +51,10 @@ async def add_salon(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Error adding salon: {e}")
 
 if __name__ == "__main__":
-    app = ApplicationBuilder().token(ADMIN_BOT_TOKEN).build()
-    app.add_handler(CommandHandler("addsalon", add_salon))
-    print("👑 SaaS Master Admin Bot Running...")
-    app.run_polling()
+    if not ADMIN_BOT_TOKEN:
+        print("❌ Error: ADMIN_BOT_TOKEN Environment Variable missing hai!")
+    else:
+        app = ApplicationBuilder().token(ADMIN_BOT_TOKEN).build()
+        app.add_handler(CommandHandler("addsalon", add_salon))
+        print("👑 SaaS Master Admin Bot Running...")
+        app.run_polling()
