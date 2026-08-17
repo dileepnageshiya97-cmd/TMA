@@ -34,16 +34,18 @@ def dashboard():
     salon_id = request.args.get('salon_id')
     return render_template('owner_dashboard.html', salon_id=salon_id)
 
-# --- APIs ---
+# --- SUPER ADMIN APIs ---
 
-@app.route('/api/add-salon', methods=['POST'])
+@app.route('/api/admin/add-salon', methods=['POST'])
 def add_salon():
     data = request.json or {}
-    name = data.get('name')
+    name = data.get('salon_name') or data.get('name')
     bot_token = data.get('bot_token')
+    logo_url = data.get('logo_url') or "https://via.placeholder.com/80"
+    primary_color = data.get('primary_color') or "#2563eb"
     
     if not name or not bot_token:
-        return jsonify({'error': 'Salon Name and Bot Token are required'}), 400
+        return jsonify({'success': False, 'error': 'Salon Name and Bot Token are required'}), 400
         
     try:
         conn = get_db()
@@ -53,40 +55,154 @@ def add_salon():
         
         cursor.execute(
             "INSERT INTO salon_branding (salon_id, logo_url, primary_color) VALUES (?, ?, ?)",
-            (salon_id, "https://via.placeholder.com/80", "#2563eb")
+            (salon_id, logo_url, primary_color)
         )
         conn.commit()
         conn.close()
-        return jsonify({'message': 'Salon registered successfully!', 'salon_id': salon_id}), 201
+        return jsonify({'success': True, 'message': 'Salon registered successfully!', 'salon_id': salon_id}), 201
     except sqlite3.IntegrityError:
-        return jsonify({'error': 'Bot token already exists'}), 400
+        return jsonify({'success': False, 'error': 'Bot token already exists'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/metrics', methods=['GET'])
+def get_metrics():
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT 
+                s.salon_id, 
+                s.salon_name, 
+                s.bot_token, 
+                s.is_active, 
+                b.logo_url, 
+                b.primary_color 
+            FROM salons s
+            LEFT JOIN salon_branding b ON s.salon_id = b.salon_id
+        ''')
+        salons_rows = cursor.fetchall()
+        
+        salons = []
+        active_count = 0
+        token_count = 0
+        
+        for row in salons_rows:
+            item = dict(row)
+            item['is_active'] = item['is_active'] if item['is_active'] is not None else 1
+            if item['is_active']:
+                active_count += 1
+            if item['bot_token']:
+                token_count += 1
+            salons.append(item)
+            
+        total_salons = len(salons)
+        conn.close()
+
+        return jsonify({
+            'total_salons': total_salons,
+            'active_salons': active_count,
+            'total_tokens': token_count,
+            'salons': salons
+        }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# --- CUSTOMER BOOKING APIs ---
 
 @app.route('/api/book-appointment', methods=['POST'])
 def book_appointment():
     data = request.json or {}
-    salon_id = data.get('salon_id')
+    salon_id = data.get('salon_id', '1')
     name = data.get('name')
     phone = data.get('phone')
-    service = data.get('service', 'General Haircut')
+    service = data.get('service', 'Haircut & Styling')
     date = data.get('date')
-    time = data.get('time')
+    time = data.get('time', '')
+    amount = data.get('amount', 300)  # Frontend se received price save hoga
 
-    if not salon_id or not name:
-        return jsonify({'error': 'Salon ID and Customer Name are required'}), 400
+    if not salon_id or not name or not phone:
+        return jsonify({'error': 'Salon ID, Customer Name, and Phone are required'}), 400
 
     try:
         conn = get_db()
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO appointments (salon_id, customer_name, customer_phone, service_name, booking_date, booking_time)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (salon_id, name, phone, service, date, time))
+            INSERT INTO appointments (salon_id, customer_name, customer_phone, service_name, booking_date, booking_time, amount, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (salon_id, name, phone, service, date, time, amount, 'WAITING'))
         conn.commit()
         conn.close()
 
         return jsonify({'message': 'Appointment booked successfully!'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# --- SALON OWNER DASHBOARD APIs ---
+
+@app.route('/api/owner/bookings', methods=['GET'])
+def get_owner_bookings():
+    salon_id = request.args.get('salon_id', '1')
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT 
+                appointment_id AS booking_id,
+                appointment_id AS token_number,
+                customer_name,
+                service_name,
+                COALESCE(amount, 0) AS amount,
+                COALESCE(status, 'WAITING') AS status
+            FROM appointments
+            WHERE salon_id = ?
+            ORDER BY appointment_id DESC
+        ''', (salon_id,))
+        
+        rows = cursor.fetchall()
+        bookings = [dict(row) for row in rows]
+        
+        total_earnings = sum(b['amount'] for b in bookings if b['status'] == 'COMPLETED')
+        today_customers = len(bookings)
+
+        conn.close()
+        return jsonify({
+            'total_earnings': total_earnings,
+            'today_customers': today_customers,
+            'bookings': bookings
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'total_earnings': 0,
+            'today_customers': 0,
+            'bookings': [],
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/owner/update-status', methods=['POST'])
+def update_booking_status():
+    data = request.json or {}
+    booking_id = data.get('booking_id')
+    new_status = data.get('status')
+
+    if not booking_id or not new_status:
+        return jsonify({'error': 'Booking ID and status are required'}), 400
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE appointments 
+            SET status = ? 
+            WHERE appointment_id = ?
+        ''', (new_status, booking_id))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Status updated successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

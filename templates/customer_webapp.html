@@ -17,6 +17,9 @@
             <p class="text-xs text-gray-500 mt-1">Select your service and choose a preferred time</p>
         </div>
 
+        <!-- Notification Message Box -->
+        <div id="status-msg" class="hidden mb-4 p-3 rounded-xl text-xs font-semibold text-center"></div>
+
         <!-- Booking Form -->
         <form id="booking-form" onsubmit="handleBooking(event)">
             
@@ -34,16 +37,16 @@
                     class="w-full border border-gray-300 rounded-xl p-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
             </div>
 
-            <!-- Select Service Dropdown (Fixed Code) -->
+            <!-- Select Service Dropdown -->
             <div class="mb-5">
                 <label for="cust-service" class="block text-xs font-semibold text-gray-600 uppercase mb-1">Select Service</label>
                 <select id="cust-service" required
                     class="w-full border border-gray-300 rounded-xl p-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                     <option value="" disabled selected>Choose a Service...</option>
-                    <option value="haircut">Haircut & Styling - ₹300</option>
-                    <option value="facial">Facial & Skincare - ₹800</option>
-                    <option value="coloring">Hair Coloring - ₹1200</option>
-                    <option value="beard">Beard Grooming - ₹150</option>
+                    <option value="Haircut & Styling" data-price="300">Haircut & Styling - ₹300</option>
+                    <option value="Facial & Skincare" data-price="800">Facial & Skincare - ₹800</option>
+                    <option value="Hair Coloring" data-price="1200">Hair Coloring - ₹1200</option>
+                    <option value="Beard Grooming" data-price="150">Beard Grooming - ₹150</option>
                 </select>
             </div>
 
@@ -55,7 +58,7 @@
             </div>
 
             <!-- Submit Button -->
-            <button type="submit" 
+            <button type="submit" id="submit-btn"
                 class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-lg hover:shadow-indigo-500/30 active:scale-95">
                 Confirm Booking
             </button>
@@ -65,18 +68,62 @@
     </div>
 
     <script>
+        // URL se salon_id extract karein, fallback to 1
+        const urlParams = new URLSearchParams(window.location.search);
+        const salonId = urlParams.get('salon_id') || '1';
+
         function handleBooking(event) {
             event.preventDefault();
 
-            const name = document.getElementById('cust-name').value;
-            const phone = document.getElementById('cust-phone').value;
-            const service = document.getElementById('cust-service').value;
+            const submitBtn = document.getElementById('submit-btn');
+            const msgBox = document.getElementById('status-msg');
+            
+            const name = document.getElementById('cust-name').value.trim();
+            const phone = document.getElementById('cust-phone').value.trim();
+            const serviceSelect = document.getElementById('cust-service');
+            const serviceName = serviceSelect.value;
+            const servicePrice = serviceSelect.options[serviceSelect.selectedIndex].getAttribute('data-price');
             const date = document.getElementById('booking-date').value;
 
-            alert(`Booking Successful!\n\nName: ${name}\nService: ${service}\nDate: ${date}`);
-            
-            // Clear Form
-            document.getElementById('booking-form').reset();
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Booking Appointment...";
+
+            // API Call Backend ko payload bhejne ke liye
+            fetch('/api/book-appointment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    salon_id: salonId,
+                    name: name,
+                    phone: phone,
+                    service: serviceName,
+                    amount: parseInt(servicePrice) || 300,
+                    date: date,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Confirm Booking";
+
+                msgBox.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-emerald-100', 'text-emerald-700');
+                if (data.message) {
+                    msgBox.classList.add('bg-emerald-100', 'text-emerald-700');
+                    msgBox.innerText = "✅ " + data.message;
+                    document.getElementById('booking-form').reset();
+                } else {
+                    msgBox.classList.add('bg-red-100', 'text-red-700');
+                    msgBox.innerText = "❌ " + (data.error || "Failed to book appointment.");
+                }
+            })
+            .catch(err => {
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Confirm Booking";
+                msgBox.classList.remove('hidden');
+                msgBox.classList.add('bg-red-100', 'text-red-700');
+                msgBox.innerText = "❌ Network error. Please try again.";
+            });
         }
     </script>
 
